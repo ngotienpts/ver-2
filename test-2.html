@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slider with Pagination</title>
+    <style>
+        .slider {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .slide {
+            display: flex;
+            transition: transform 0.5s ease;
+            will-change: transform;
+        }
+
+        .item {
+            flex: 0 0 auto;
+            margin: 0 5px; /* Chỉ thêm margin giữa các item */
+        }
+
+        .item img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .slider .item {
+            width: calc(100% / 2);
+        }
+        .slider[data-page="auto"] .item {
+            width: auto !important;
+        }
+        button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+        }
+
+        .prev {
+            left: 10px;
+        }
+
+        .next {
+            right: 10px;
+        }
+
+        .pagination {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+        }
+
+        .pagination span {
+            display: block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: gray;
+            cursor: pointer;
+        }
+
+        .pagination .active {
+            background-color: black;
+        }
+    </style>
+</head>
+<body>
+
+<div class="slider" id="slider1" data-loop="false" data-page="4" data-autoSlider="true">
+    <div class="slide">
+        <div class="item"><img src="./images/ads_center.png" alt=""></div>
+        <div class="item"><img src="./images/ads_top_mb.png" alt=""></div>
+        <div class="item"><img src="./images/ads_center.png" alt=""></div>
+        <div class="item"><img src="./images/ads_top_mb.png" alt=""></div>
+        <div class="item"><img src="./images/ads_center.png" alt=""></div>
+        <div class="item"><img src="./images/ads_top_mb.png" alt=""></div>
+    </div>
+    <button class="prev">Prev</button>
+    <button class="next">Next</button>
+    <div class="pagination"></div>
+</div>
+<div class="slider" id="slider2" data-loop="false" data-page="2" data-autoSlider="true">
+    <div class="slide">
+        <div class="item"><img src="./images/ads_center.png" alt=""></div>
+        <div class="item"><img src="./images/ads_top_mb.png" alt=""></div>
+        <div class="item"><img src="./images/ads_center.png" alt=""></div>
+        <div class="item"><img src="./images/ads_top_mb.png" alt=""></div>
+        <div class="item"><img src="./images/ads_center.png" alt=""></div>
+        <div class="item"><img src="./images/ads_top_mb.png" alt=""></div>
+    </div>
+    <button class="prev">Prev</button>
+    <button class="next">Next</button>
+    <div class="pagination"></div>
+</div>
+<div class="slider" id="slider3" data-loop="false" data-page="auto" data-autoSlider="false">
+    <div class="slide">
+        <div class="item"><img src="./images/ads_center.png" alt=""></div>
+        <div class="item"><img src="./images/ads_center.png" alt=""></div>
+        <div class="item"><img src="./images/ads_center.png" alt=""></div>
+    </div>
+    <button class="prev">Prev</button>
+    <button class="next">Next</button>
+    <div class="pagination"></div>
+</div>
+
+<script>
+   document.addEventListener('DOMContentLoaded', function () {
+    const sliders = document.querySelectorAll('.slider');
+    sliders.forEach((slider) => {
+        const slide = slider.querySelector('.slide');
+        const items = Array.from(slide.children);
+        const prevButton = slider.querySelector('.prev');
+        const nextButton = slider.querySelector('.next');
+        const paginationContainer = slider.querySelector('.pagination');
+        let currentIndex = 0;
+        let autoSlideInterval;
+
+        function setItemsToShow() {
+            const sliderWidth = slider.clientWidth;
+            let itemsToShow;
+
+            if (slider.getAttribute('data-page') === 'auto') {
+                const itemWidth = items[0].offsetWidth + 10; // Thêm margin vào chiều rộng item
+                itemsToShow = Math.floor(sliderWidth / itemWidth);
+            } else {
+                itemsToShow = parseInt(slider.getAttribute('data-page')) || 1;
+            }
+
+            return itemsToShow;
+        }
+
+        function setSlideWidth() {
+            const itemsToShow = setItemsToShow();
+            const sliderWidth = slider.clientWidth;
+            const itemWidth = sliderWidth / itemsToShow;
+
+            items.forEach(item => {
+                item.style.width = `${itemWidth - 10}px`; // Trừ đi margin để tránh lỗi
+            });
+
+            slide.style.width = `${items.length * (itemWidth - 10)}px`;
+        }
+
+        function updatePagination() {
+            paginationContainer.innerHTML = '';
+            const itemsToShow = setItemsToShow();
+            const totalPages = Math.ceil(items.length / itemsToShow);
+
+            for (let i = 0; i < totalPages; i++) {
+                const dot = document.createElement('span');
+                dot.classList.add('pagination-dot');
+                if (i === currentIndex) {
+                    dot.classList.add('active');
+                }
+                dot.addEventListener('click', () => {
+                    currentIndex = i;
+                    updateSlider();
+                });
+                paginationContainer.appendChild(dot);
+            }
+        }
+
+        function updateSlider() {
+            const itemWidth = items[0].offsetWidth + 10;
+            const itemsToShow = setItemsToShow();
+            const totalPages = Math.ceil(items.length / itemsToShow);
+            const sliderWidth = slider.clientWidth;
+
+            // Đảm bảo currentIndex không vượt quá số lượng trang có thể
+            if (currentIndex >= totalPages) {
+                currentIndex = totalPages - 1;
+            }
+            if (currentIndex < 0) {
+                currentIndex = 0;
+            }
+
+            // Tính toán vị trí dịch chuyển chính xác
+            const maxTranslateX = slide.scrollWidth - sliderWidth;
+            const translateX = Math.min(currentIndex * itemWidth, maxTranslateX);
+            slide.style.transform = `translateX(-${translateX}px)`;
+
+            updatePagination();
+        }
+
+        function nextSlide() {
+            const itemsToShow = setItemsToShow();
+            const totalPages = Math.ceil(items.length / itemsToShow);
+            currentIndex++;
+            if (currentIndex >= totalPages) {
+                currentIndex = slider.getAttribute('data-loop') === 'true' ? 0 : totalPages - 1;
+            }
+            updateSlider();
+        }
+
+        function prevSlide() {
+            const itemsToShow = setItemsToShow();
+            const totalPages = Math.ceil(items.length / itemsToShow);
+            currentIndex--;
+            if (currentIndex < 0) {
+                currentIndex = slider.getAttribute('data-loop') === 'true' ? totalPages - 1 : 0;
+            }
+            updateSlider();
+        }
+
+        nextButton.addEventListener('click', nextSlide);
+        prevButton.addEventListener('click', prevSlide);
+
+        if (slider.getAttribute('data-autoSlider') === 'true') {
+            autoSlideInterval = setInterval(nextSlide, 3000);
+
+            slider.addEventListener('mouseenter', () => clearInterval(autoSlideInterval));
+            slider.addEventListener('mouseleave', () => autoSlideInterval = setInterval(nextSlide, 3000));
+        }
+
+        setSlideWidth();
+        updateSlider();
+
+        window.addEventListener('resize', () => {
+            setSlideWidth();
+            updateSlider();
+        });
+    });
+});
+
+</script>
+
+</body>
+</html>
