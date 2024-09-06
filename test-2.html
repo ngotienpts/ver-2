@@ -74,7 +74,7 @@
 </head>
 <body>
 
-<div class="slider" id="slider1" data-loop="false" data-page="4" data-autoSlider="true">
+<div class="slider" id="slider1" data-loop="false" data-page="6" data-autoSlider="true">
     <div class="slide">
         <div class="item"><img src="./images/ads_center.png" alt=""></div>
         <div class="item"><img src="./images/ads_top_mb.png" alt=""></div>
@@ -100,16 +100,20 @@
     <button class="next">Next</button>
     <div class="pagination"></div>
 </div>
-<div class="slider" id="slider3" data-loop="false" data-page="auto" data-autoSlider="false">
+<div class="slider" id="slider3" data-loop="false" data-page="auto" data-vertical="true" data-autoSlider="false">
     <div class="slide">
         <div class="item"><img src="./images/ads_center.png" alt=""></div>
+        <div class="item"><img src="./images/ads_top_mb.png" alt=""></div>
         <div class="item"><img src="./images/ads_center.png" alt=""></div>
+        <div class="item"><img src="./images/ads_top_mb.png" alt=""></div>
         <div class="item"><img src="./images/ads_center.png" alt=""></div>
+        <div class="item"><img src="./images/ads_top_mb.png" alt=""></div>
     </div>
     <button class="prev">Prev</button>
     <button class="next">Next</button>
     <div class="pagination"></div>
 </div>
+
 
 <script>
    document.addEventListener('DOMContentLoaded', function () {
@@ -150,45 +154,82 @@
         }
 
         function updatePagination() {
-            paginationContainer.innerHTML = '';
-            const itemsToShow = setItemsToShow();
-            const totalPages = Math.ceil(items.length / itemsToShow);
+    paginationContainer.innerHTML = '';
+    const itemsToShow = setItemsToShow();
+    const totalPages = Math.ceil(items.length / itemsToShow);
 
-            for (let i = 0; i < totalPages; i++) {
-                const dot = document.createElement('span');
-                dot.classList.add('pagination-dot');
-                if (i === currentIndex) {
-                    dot.classList.add('active');
-                }
-                dot.addEventListener('click', () => {
-                    currentIndex = i;
-                    updateSlider();
-                });
-                paginationContainer.appendChild(dot);
-            }
+    // Ẩn pagination và nút điều hướng nếu số lượng slide bằng số lượng item hiển thị
+    if (items.length === itemsToShow) {
+        paginationContainer.style.display = 'none';
+        prevButton.style.display = 'none';
+        nextButton.style.display = 'none';
+        return;
+    } else {
+        paginationContainer.style.display = 'flex';
+        prevButton.style.display = 'block';
+        nextButton.style.display = 'block';
+    }
+
+    for (let i = 0; i < totalPages; i++) {
+        const dot = document.createElement('span');
+        dot.classList.add('pagination-dot');
+        if (i === currentIndex) {
+            dot.classList.add('active');
         }
+        dot.addEventListener('click', () => {
+            currentIndex = i;
+            updateSlider();
+        });
+        paginationContainer.appendChild(dot);
+    }
+}
+
+
+        
 
         function updateSlider() {
-            const itemWidth = items[0].offsetWidth + 10;
-            const itemsToShow = setItemsToShow();
-            const totalPages = Math.ceil(items.length / itemsToShow);
-            const sliderWidth = slider.clientWidth;
+    let itemsToShow = setItemsToShow();
+    const sliderWidth = slider.clientWidth;
+    const totalPages = Math.ceil(items.length / itemsToShow);
 
-            // Đảm bảo currentIndex không vượt quá số lượng trang có thể
-            if (currentIndex >= totalPages) {
-                currentIndex = totalPages - 1;
-            }
-            if (currentIndex < 0) {
-                currentIndex = 0;
-            }
+    // Đảm bảo currentIndex không vượt quá số lượng trang có thể
+    if (currentIndex >= totalPages) {
+        currentIndex = totalPages - 1;
+    }
+    if (currentIndex < 0) {
+        currentIndex = 0;
+    }
 
-            // Tính toán vị trí dịch chuyển chính xác
-            const maxTranslateX = slide.scrollWidth - sliderWidth;
-            const translateX = Math.min(currentIndex * itemWidth, maxTranslateX);
-            slide.style.transform = `translateX(-${translateX}px)`;
+    // Tính toán vị trí dịch chuyển chính xác cho từng item
+    let translateX = 0;
+    let totalWidthCovered = 0;
 
-            updatePagination();
+    for (let i = 0; i < items.length; i++) {
+        totalWidthCovered += items[i].offsetWidth + 10; // Tính cả chiều rộng và margin 5px hai bên
+        if (i < currentIndex * itemsToShow) {
+            translateX += items[i].offsetWidth + 10; // Cộng dồn chiều rộng cho các item trước đó
         }
+    }
+
+    const maxTranslateX = Math.max(0, totalWidthCovered - sliderWidth); // Đảm bảo maxTranslateX không âm
+
+    // Điều chỉnh translateX nếu vượt quá maxTranslateX
+    if (translateX > maxTranslateX) {
+        translateX = maxTranslateX; // Giới hạn không cuộn quá max
+    } else if (currentIndex === totalPages - 1) {
+        // Nếu là trang cuối cùng, dịch chuyển sao cho phần tử cuối nằm gọn bên phải
+        translateX = maxTranslateX;
+    }
+
+    slide.style.transform = `translateX(-${translateX}px)`;
+
+    updatePagination();
+}
+
+
+
+
+
 
         function nextSlide() {
             const itemsToShow = setItemsToShow();

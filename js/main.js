@@ -53,6 +53,163 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    // slide
+    function initializeSlider(selector, options = {}) {
+        const slider = document.querySelector(selector);
+        if (slider) {
+
+            const slide = slider.querySelector('.slider-wrapper');
+            const items = Array.from(slide.children);
+            const prevButton = slider.querySelector('.slider-button-prev');
+            const nextButton = slider.querySelector('.slider-button-next');
+            const paginationContainer = slider.querySelector('.slider-pagination');
+            let currentIndex = 0;
+            let autoSlideInterval;
+
+            function setItemsToShow() {
+                const isMobile = window.innerWidth <= (options.mobileBreakpoint || 768); // Sử dụng điểm ngắt từ options
+                const sliderSize = slider.getAttribute('data-vertical') === 'true' ? slider.clientHeight : slider.clientWidth;
+                let itemsToShow;
+
+                if (isMobile) {
+                    itemsToShow = parseInt(slider.getAttribute('data-pageMobile')) || 1;
+                } else {
+                    if (slider.getAttribute('data-page') === 'auto') {
+                        const itemSize = slider.getAttribute('data-vertical') === 'true' ? items[0].offsetHeight + 10 : items[0].offsetWidth + 10;
+                        itemsToShow = Math.floor(sliderSize / itemSize);
+                    } else {
+                        itemsToShow = parseInt(slider.getAttribute('data-page')) || 1;
+                    }
+                }
+
+                return itemsToShow;
+            }
+
+            function setSlideSize() {
+                const itemsToShow = setItemsToShow();
+                const sliderSize = slider.getAttribute('data-vertical') === 'true' ? slider.clientHeight : slider.clientWidth;
+                const itemSize = (sliderSize / itemsToShow) - 10; // Trừ margin
+
+                items.forEach(item => {
+                    if (slider.getAttribute('data-vertical') === 'true') {
+                        item.style.height = `${itemSize}px`;
+                    } else {
+                        item.style.width = `${itemSize}px`;
+                    }
+                });
+
+                if (slider.getAttribute('data-vertical') === 'true') {
+                    slide.style.height = `${items.reduce((totalHeight, item) => totalHeight + item.offsetHeight + 10, 0)}px`;
+                } else {
+                    slide.style.width = `${items.reduce((totalWidth, item) => totalWidth + item.offsetWidth + 10, 0)}px`;
+                }
+            }
+
+            function updatePagination() {
+                if (paginationContainer) {
+                    paginationContainer.innerHTML = '';
+                    const itemsToShow = setItemsToShow();
+                    const totalPages = Math.ceil(items.length / itemsToShow);
+
+                    if (items.length <= itemsToShow) {
+                        paginationContainer.style.display = 'none';
+                        if (prevButton) prevButton.style.display = 'none';
+                        if (nextButton) nextButton.style.display = 'none';
+                        return;
+                    } else {
+                        paginationContainer.style.display = 'flex';
+                        if (prevButton) prevButton.style.display = 'block';
+                        if (nextButton) nextButton.style.display = 'block';
+                    }
+
+                    for (let i = 0; i < totalPages; i++) {
+                        const dot = document.createElement('span');
+                        dot.classList.add('pagination-dot');
+                        if (i === currentIndex) {
+                            dot.classList.add('active');
+                        }
+                        dot.addEventListener('click', () => {
+                            currentIndex = i;
+                            updateSlider();
+                        });
+                        paginationContainer.appendChild(dot);
+                    }
+                }
+
+            }
+
+            function updateSlider() {
+                const itemsToShow = setItemsToShow();
+                const sliderSize = slider.getAttribute('data-vertical') === 'true' ? slider.clientHeight : slider.clientWidth;
+                const totalPages = Math.ceil(items.length / itemsToShow);
+
+                if (currentIndex >= totalPages) {
+                    currentIndex = totalPages - 1;
+                }
+                if (currentIndex < 0) {
+                    currentIndex = 0;
+                }
+
+                let translateSize = 0;
+                for (let i = 0; i < currentIndex * itemsToShow; i++) {
+                    translateSize += slider.getAttribute('data-vertical') === 'true' ? items[i].offsetHeight + 10 : items[i].offsetWidth + 10;
+                }
+
+                const maxTranslateSize = slider.getAttribute('data-vertical') === 'true' ? slide.scrollHeight - slider.clientHeight : slide.scrollWidth - slider.clientWidth;
+                translateSize = Math.min(translateSize, maxTranslateSize);
+
+                slide.style.transform = slider.getAttribute('data-vertical') === 'true' ? `translateY(-${translateSize}px)` : `translateX(-${translateSize}px)`;
+
+                updatePagination();
+            }
+
+            if (nextButton) {
+                nextButton.addEventListener('click', () => {
+                    const itemsToShow = setItemsToShow();
+                    const totalPages = Math.ceil(items.length / itemsToShow);
+                    currentIndex++;
+                    if (currentIndex >= totalPages) {
+                        currentIndex = slider.getAttribute('data-loop') === 'true' ? 0 : totalPages - 1;
+                    }
+                    updateSlider();
+                });
+            }
+
+            if (prevButton) {
+                prevButton.addEventListener('click', () => {
+                    const itemsToShow = setItemsToShow();
+                    const totalPages = Math.ceil(items.length / itemsToShow);
+                    currentIndex--;
+                    if (currentIndex < 0) {
+                        currentIndex = slider.getAttribute('data-loop') === 'true' ? totalPages - 1 : 0;
+                    }
+                    updateSlider();
+                });
+            }
+            if (slider.getAttribute('data-autoSlider') === 'true') {
+                autoSlideInterval = setInterval(() => {
+                    if (nextButton) nextButton.click();
+                }, 3000);
+
+                slider.addEventListener('mouseenter', () => clearInterval(autoSlideInterval));
+                slider.addEventListener('mouseleave', () => autoSlideInterval = setInterval(() => {
+                    if (nextButton) nextButton.click();
+                }, 3000));
+            }
+
+            setSlideSize();
+            updateSlider();
+
+            window.addEventListener('resize', () => {
+                setSlideSize();
+                updateSlider();
+            });
+        }
+    }
+    initializeSlider('#slider-1');
+    initializeSlider('#slider-2');
+    // end slide
+
     const app = {
         // su ly cac su kien
         handleEvent: function () {
@@ -131,6 +288,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // });
         },
+
+
         // slider one item
         sliderOneItems: function () {
             oneSlides.forEach((item) => {
@@ -138,7 +297,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 var slider = item.querySelector(".js__swiperItems");
                 new Swiper(slider, {
                     slidesPerView: 1,
-                    spaceBetween: 30,
+                    10: 30,
                     slidesPerGroup: 1,
                     autoHeight: true,
                     effect: "fade",
@@ -157,7 +316,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 var prev = item.querySelector(".swiper-button-prev");
                 new Swiper(slider, {
                     slidesPerView: "auto",
-                    spaceBetween: 20,
+                    10: 20,
                     navigation: {
                         nextEl: next || null,
                         prevEl: prev || null,
@@ -173,7 +332,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 var prev = item.querySelector(".swiper-button-prev");
                 new Swiper(slider, {
                     slidesPerView: "auto",
-                    spaceBetween: 0,
+                    10: 0,
                     direction: "vertical",
                     navigation: {
                         nextEl: next || null,
@@ -190,7 +349,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 var prev = item.querySelector(".swiper-button-prev");
                 new Swiper(slider, {
                     slidesPerView: 3,
-                    spaceBetween: 30,
+                    10: 30,
                     navigation: {
                         nextEl: next || null,
                         prevEl: prev || null,
